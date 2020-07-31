@@ -7,6 +7,12 @@ setwd("~/Github/Conflict-and-infectious-disease")
 
 dons <- read_csv('./Infectious Disease Data/DON-1.1.0001.csv')
 
+# 0. Outbreak deaths 
+
+dons %>% group_by(DONid) %>% summarize(maxdeaths = max(`Death count`, na.rm = TRUE))
+
+
+
 # 1. Aggregate DONs by country, month, year, outbreak identity, retain outbreak type
 
 dons %<>% select("Year(s) of outbreak","Country","ISO code", "Disease/pathogen name", "Date recorded",
@@ -49,6 +55,10 @@ con %>%
   rename(deaths = best) %>% 
   rename(Country = country) -> con
 
+con %>% group_by(Country, year, month) %>%
+  summarize(deaths = sum(deaths, na.rm = TRUE)) %>% # Because several conflicts a month (see AFG)
+  filter(year > 1995) -> con # Because DONs start in 96
+
 con
 
 # 3. Merge things
@@ -62,9 +72,20 @@ full_join(con, dons) %>%
 
 donflict %>% unique() -> donflict
 
+donflict %>% mutate(conflict2 = ((conflict==TRUE) & deaths > 25)) -> donflict.test
+
+
+
+
+
 # 4. An example analysis
 
 prop.table(table(donflict$Etiology, donflict$conflict),1) %>% round(2)
+
+prop.table(table(donflict$Disease, donflict$conflict),1) %>% data.frame() %>%
+  filter(Var2 == 'TRUE') %>% View()
+  round(2) %>%
+  as.matrix() %>% data.frame() %>% View()
 
 # Definitely a lot of things more likely during conflict!
 
